@@ -1,38 +1,38 @@
-# Start with a base golang image for building
+# Use a multi-stage build for smaller final image size
 FROM golang:1.22.4-alpine3.19 AS builder
 
-# Set the Current Working Directory inside the container
 WORKDIR /app
 
-# Copy go mod and sum files
+# Copy only the necessary Go module files
 COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
 
-# Copy the source code into the container
-COPY . .
+# Copy the rest of the source code
+COPY ./src ./src
 
-# Build the Go app
-RUN go build -o main .
+# Build the Go application
+RUN go build -o /app/main ./src
 
-# Start a new stage from Alpine Linux
+# Start a new stage for the final minimal image
 FROM alpine:latest
 
-# Install necessary packages (including OpenSSH for SSH server functionality)
+# Install necessary packages
 RUN apk add --no-cache openssh
 
-# Copy the built executable from the builder stage
-COPY --from=builder /app/main /usr/local/bin/
+# Set working directory
+WORKDIR /app
 
-# Copy your private key (adjust path if necessary)
+# Copy the compiled binary and SSH key
+COPY --from=builder /app/main /app/
 COPY ./ssh_server_key /root/.ssh/id_rsa
 
-# Set permissions for the private key (recommended: read-only)
+# Set permissions for SSH key
 RUN chmod 400 /root/.ssh/id_rsa
 
 # Expose SSH port
 EXPOSE 2222
 
-# Command to run the executable
-CMD ["main"]
+# Start the SSH server
+CMD ["./main"]

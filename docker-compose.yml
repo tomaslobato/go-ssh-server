@@ -1,0 +1,35 @@
+version: '3.4'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 2222:2222
+    volumes:
+      - ./src:/app/src  # Mount only the src directory
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db  # Replace with your actual database host if different
+      DB_PORT: "5432"  # PostgreSQL default port
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: saves
+
+  db:
+    image: postgres:16
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: saves
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
