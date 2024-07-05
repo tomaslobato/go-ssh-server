@@ -6,15 +6,14 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    ports:
-      - 2222:2222
+    network_mode: "host"
     volumes:
-      - ./src:/app/src  # Mount only the src directory
+      - ./src:/app/src
     depends_on:
       - db
     environment:
-      DB_HOST: db  # Replace with your actual database host if different
-      DB_PORT: "5432"  # PostgreSQL default port
+      DB_HOST: localhost
+      DB_PORT: 5432
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: saves

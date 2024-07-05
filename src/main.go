@@ -18,7 +18,7 @@ func getUserPassword(username string) (string, error) {
 
 	// This is just an example. Don't store passwords like this in production!
 	users := map[string]string{
-		"tomas": "ironman sucks",
+		"tomas": "opusk",
 	}
 
 	if pass, ok := users[username]; ok {
@@ -26,9 +26,12 @@ func getUserPassword(username string) (string, error) {
 	}
 	return "", fmt.Errorf("user not found")
 }
-
 func main() {
 	db, err := initDB()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+
 	config := &ssh.ServerConfig{
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			username := c.User()
@@ -48,7 +51,7 @@ func main() {
 		},
 	}
 
-	privateBytes, err := os.ReadFile("/root/.ssh/id_rsa") ///home/tomas/.ssh/id_rsa
+	privateBytes, err := os.ReadFile("/root/.ssh/id_rsa")
 	if err != nil {
 		log.Fatal("Failed to load private key: ", err)
 	}
@@ -60,12 +63,11 @@ func main() {
 
 	config.AddHostKey(private)
 
-	//listen port 2222
 	listener, err := net.Listen("tcp", "0.0.0.0:2222")
 	if err != nil {
 		log.Fatal("failed to listen for connection: ", err)
 	}
-	fmt.Println("listening on 0.0.0.0:2222")
+	fmt.Printf("listening on %s:2222\n", getLocalIP())
 
 	for {
 		nConn, err := listener.Accept()
@@ -78,6 +80,11 @@ func main() {
 }
 
 func handleConnection(db *sql.DB, nConn net.Conn, config *ssh.ServerConfig) {
+	if db == nil {
+		log.Println("Database connection is nil")
+		return
+	}
+
 	fmt.Println("New connection received")
 	conn, chans, reqs, err := ssh.NewServerConn(nConn, config)
 	if err != nil {
@@ -113,7 +120,7 @@ func handleConnection(db *sql.DB, nConn net.Conn, config *ssh.ServerConfig) {
 			}
 		}(requests)
 
-		io.WriteString(channel, "Welcome to the Go SSH server!\r\n")
+		io.WriteString(channel, "Welcome to the Go SSH server!\r\n> ")
 
 		go func() {
 			defer channel.Close()
@@ -191,7 +198,13 @@ func handleCommand(db *sql.DB, command string, channel ssh.Channel) {
 }
 
 func initDB() (*sql.DB, error) {
-	connStr := "postgres://postgres:postgres@db:5432/postgres?sslmode=disable"
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, password, host, port, dbname)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
@@ -230,4 +243,19 @@ func showSavedContent(db *sql.DB, channel ssh.Channel) {
 	if err := rows.Err(); err != nil {
 		channel.Write([]byte(fmt.Sprintf("Error after fetching rows: %v\r\n", err)))
 	}
+}
+
+func getLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "Error getting IP"
+	}
+	for _, address := range addrs {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return "No IP found"
 }

@@ -1,8 +1,5 @@
-root = "."
-tmp_dir = "tmp"
-
 [build]
-  cmd = "go build -o ./tmp/main ."
+  cmd = "go build -o ./tmp/main ./src/main.go"
   bin = "./tmp/main"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor"]
@@ -16,15 +13,5 @@ tmp_dir = "tmp"
   send_interrupt = false
   stop_on_error = true
 
-[color]
-  app = ""
-  build = "yellow"
-  main = "magenta"
-  runner = "green"
-  watcher = "cyan"
-
 [log]
   time = false
-
-[misc]
-  clean_on_exit = false
