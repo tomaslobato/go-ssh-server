@@ -8,6 +8,7 @@ RUN go mod download
 
 RUN go install github.com/air-verse/air@latest
 
+COPY ./src ./src
 COPY . .
 
 RUN apk add --no-cache openssh

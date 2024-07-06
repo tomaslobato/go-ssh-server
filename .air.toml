@@ -1,5 +1,5 @@
 [build]
-  cmd = "go build -o ./tmp/main ./src/main.go"
+  cmd = "go build -o ./tmp/main ."
   bin = "./tmp/main"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor"]
